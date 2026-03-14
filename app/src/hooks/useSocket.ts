@@ -4,11 +4,17 @@ import { useGameStore } from '../store/gameStore';
 
 // ── Auto-detect server URL for LAN / mobile support ──────────────────────────
 function getServerUrl(): string {
-  if (import.meta.env.VITE_SERVER_URL) {
-    return import.meta.env.VITE_SERVER_URL;
+  let url = import.meta.env.VITE_SERVER_URL;
+  if (url) {
+    // Remove trailing slash if present
+    url = url.endsWith('/') ? url.slice(0, -1) : url;
+    console.log(`[socket] Using environment server URL: ${url}`);
+    return url;
   }
   const hostname = window.location.hostname || 'localhost';
-  return `http://${hostname}:3001`;
+  const defaultUrl = `http://${hostname}:3001`;
+  console.log(`[socket] Using fallback server URL: ${defaultUrl}`);
+  return defaultUrl;
 }
 
 // ── Status decode ────────────────────────────────────────────────────────────

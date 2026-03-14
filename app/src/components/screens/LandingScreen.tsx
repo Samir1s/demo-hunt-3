@@ -5,8 +5,11 @@ import { useGameStore } from '../../store/gameStore';
 
 // Auto-detect server URL for LAN/mobile support
 function getServerUrl(): string {
-  if (import.meta.env.VITE_SERVER_URL) {
-    return import.meta.env.VITE_SERVER_URL;
+  let url = import.meta.env.VITE_SERVER_URL;
+  if (url) {
+    url = url.endsWith('/') ? url.slice(0, -1) : url;
+    console.log(`[api] Using environment server URL: ${url}`);
+    return url;
   }
   const hostname = window.location.hostname || 'localhost';
   return `http://${hostname}:3001`;
@@ -49,8 +52,9 @@ export function LandingScreen() {
       setRoomCode(data.code);
       const playerId = `agent_${agentCodename.trim().toLowerCase()}_${Date.now().toString(36)}`;
       setPlayerId(playerId);
-    } catch {
-      setError('SERVER UNREACHABLE — check connection');
+    } catch (err) {
+      console.error('[api] Create room error:', err);
+      setError('SERVER UNREACHABLE — if using Render free tier, wait 30s for spin-up');
       setIsCreating(false);
     }
   };
