@@ -255,6 +255,7 @@ io.on('connection', (socket) => {
     io.to(info.roomCode).emit('gameStarted', {
       phase: GamePhase.PLAYING,
       initialPositions,
+      demogorgonId: room.demogorgonId,
     });
 
     console.log(`[room:${info.roomCode}] → PLAYING 🎮`);

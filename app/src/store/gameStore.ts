@@ -25,6 +25,7 @@ const INITIAL_STATE = {
   // ── Multiplayer State ──────────────────────────────────────────────────
   roomCode: '',
   playerId: '',
+  demogorgonId: '' as string,
   isHost: false,
   isConnected: false,
   role: null as 'security' | 'demogorgon' | null,
@@ -36,12 +37,17 @@ const INITIAL_STATE = {
   postGameReport: null,
   secretObjective: '',
   allyIds: [] as string[],
+  serverError: null as string | null,
 };
 
 export const useGameStore = create<GameState>((set) => ({
   ...INITIAL_STATE,
 
-  setScreen: (screen) => set({ screen }),
+  setScreen: (screen) => set({ screen, serverError: null }),
+
+  setServerError: (error) => set({ serverError: error }),
+
+  setDemogorgonId: (id) => set({ demogorgonId: id }),
 
   toggleViewAs: () =>
     set((state) => ({

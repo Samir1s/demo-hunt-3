@@ -25,7 +25,7 @@ const cardVariants: Variants = {
 };
 
 export function CharacterSelectScreen() {
-  const { selectedAgent, lockedCharacters, playerId, isHost, players } = useGameStore();
+  const { selectedAgent, lockedCharacters, playerId, isHost, players, serverError } = useGameStore();
   const { emitLockCharacter, emitLockLobby } = useSocket();
   const [hovered, setHovered] = useState<string | null>(null);
   const [waitingForHost, setWaitingForHost] = useState(false);
@@ -72,6 +72,20 @@ export function CharacterSelectScreen() {
     >
       {/* Scanline accent at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-accent-cyan/40" />
+
+      {/* Server Error Alert */}
+      <AnimatePresence>
+        {serverError && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="absolute top-0 left-0 right-0 bg-red-900/80 border-b border-red-500 text-red-200 py-3 text-center font-mono text-xs tracking-widest z-50 overflow-hidden"
+          >
+            ⚠ SERVER ERROR: {serverError.toUpperCase()}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Player count badge */}
       <div className="absolute top-6 right-8 flex items-center gap-3">

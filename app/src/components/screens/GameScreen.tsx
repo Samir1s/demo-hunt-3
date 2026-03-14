@@ -16,9 +16,9 @@ import { clsx } from 'clsx';
  */
 export function GameScreen() {
   const {
-    viewAs, players, demogorgonCoords, selectedAgent, agentCodename,
+    viewAs, players, demogorgonId, selectedAgent, agentCodename,
     addIntelEvent, role, proximityAlertActive,
-    proximityIntensity, playerScore, remainingMs, isConnected
+    proximityIntensity, playerScore, remainingMs, isConnected, playerId
   } = useGameStore();
   const isDemo = (role ?? viewAs) === 'demogorgon';
 

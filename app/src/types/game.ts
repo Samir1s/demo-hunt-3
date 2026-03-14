@@ -66,6 +66,7 @@ export interface GameState {
   // ── Multiplayer State ──────────────────────────────────────────────────
   roomCode: string;
   playerId: string;
+  demogorgonId: string;
   isHost: boolean;
   isConnected: boolean;
   role: ViewAs | null;
@@ -77,9 +78,12 @@ export interface GameState {
   postGameReport: PostGameReportData | null;
   secretObjective: string;
   allyIds: string[];
+  serverError: string | null;
 
   // Actions
   setScreen: (screen: ScreenState) => void;
+  setServerError: (error: string | null) => void;
+  setDemogorgonId: (id: string) => void;
   toggleViewAs: () => void;
   updateDemogorgonCoords: (coords: { x: number; y: number }) => void;
   addIntelEvent: (event: Omit<IntelEvent, 'id'>) => void;

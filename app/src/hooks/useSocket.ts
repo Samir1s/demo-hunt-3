@@ -196,14 +196,16 @@ export function useSocket() {
       //  Game Started
       // ══════════════════════════════════════════════════════════════════════
 
-      socket.on('gameStarted', (data: { phase: string; initialPositions: { id: string; x: number; y: number; character: string }[] }) => {
+      socket.on('gameStarted', (data: { phase: string; demogorgonId?: string; initialPositions: { id: string; x: number; y: number; character: string }[] }) => {
         console.log('[socket] Game started!');
+        if (data.demogorgonId) {
+          store().setDemogorgonId(data.demogorgonId);
+        }
         for (const pos of data.initialPositions) {
           store().updatePlayerPosition(pos.id, pos.x, pos.y);
         }
         store().setScreen('game');
       });
-
       // ══════════════════════════════════════════════════════════════════════
       //  Block 3 — Movement & Wall Bump
       // ══════════════════════════════════════════════════════════════════════
@@ -327,6 +329,7 @@ export function useSocket() {
 
       socket.on('error', (data: { message: string }) => {
         console.error('[socket] Server error:', data.message);
+        store().setServerError(data.message);
       });
 
       socket.on('disconnect', (reason: string) => {

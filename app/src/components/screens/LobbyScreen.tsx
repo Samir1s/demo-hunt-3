@@ -7,8 +7,8 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export function LobbyScreen() {
-  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role, playerId } = useGameStore();
-  const { emitStartGame } = useSocket();
+  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role, playerId, serverError } = useGameStore();
+  const { emitStartGame, emitStartCharacterSelect } = useSocket();
 
   const actualRole = role ?? viewAs;
   const isDemo = actualRole === 'demogorgon';
@@ -28,6 +28,12 @@ export function LobbyScreen() {
           <h1 className="text-2xl font-display tracking-widest">
             {isDemo ? 'HIVE MIND NEURAL LINK' : 'HAWKINS LAB SECUR/OS v4.2'}
           </h1>
+          {/* Server Error Alert */}
+          {serverError && (
+            <div className="bg-red-900 border border-red-500 text-white px-4 py-1 rounded animate-pulse font-mono text-[10px] tracking-widest uppercase">
+              ⚠ Error: {serverError}
+            </div>
+          )}
           {/* Connection indicator */}
           <div className={clsx(
             "flex items-center gap-2 font-mono text-xs tracking-widest",
@@ -104,22 +110,23 @@ export function LobbyScreen() {
             className={clsx(
               "mt-4 p-4 font-display text-xl uppercase tracking-wider border-2 transition-all",
               isDemo ? "border-accent-red bg-accent-red/20 text-white hover:bg-accent-red/40" 
-                     : "border-accent-cyan bg-accent-cyan/20 text-white hover:bg-accent-cyan/40"
+                     : "border-accent-cyan bg-accent-cyan/20 text-white hover:bg-accent-cyan/40",
+              (!isHost || players.length < 2) && "opacity-50 cursor-not-allowed"
             )}
+            disabled={!isHost || players.length < 2}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={() => {
               if (isHost) {
-                emitStartGame();
+                emitStartCharacterSelect();
               }
-              setScreen('game');
             }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={isHost && players.length >= 2 ? { scale: 1.02 } : {}}
+            whileTap={isHost && players.length >= 2 ? { scale: 0.98 } : {}}
           >
             {isHost
-              ? (isDemo ? 'ENTER THE UPSIDE DOWN' : 'DEPLOY ALL AGENTS')
-              : (isDemo ? 'WAITING TO HUNT...' : 'WAITING FOR DEPLOYMENT...')
+              ? (players.length < 2 ? 'WAITING FOR PLAYERS...' : 'INITIATE SELECTION →')
+              : 'WAITING FOR HOST...'
             }
           </motion.button>
         </div>

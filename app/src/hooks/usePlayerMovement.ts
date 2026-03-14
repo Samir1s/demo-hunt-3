@@ -9,9 +9,10 @@ interface Options {
   initialGpsY?: number;
   initialTx?: number;
   initialTy?: number;
+  onMove?: (tx: number, ty: number) => void;
 }
 
-export function usePlayerMovement({ initialGpsX = 0, initialGpsY = 0, initialTx, initialTy }: Options = {}) {
+export function usePlayerMovement({ initialGpsX = 0, initialGpsY = 0, initialTx, initialTy, onMove }: Options = {}) {
   const start = initialTx !== undefined && initialTy !== undefined
     ? { tx: initialTx, ty: initialTy }
     : gpsToWorld(initialGpsX, initialGpsY);
@@ -34,9 +35,10 @@ export function usePlayerMovement({ initialGpsX = 0, initialGpsY = 0, initialTx,
       // Reject if target tile is a wall
       if ((GAME_MAP[ny]?.[nx] ?? 1) === 1) return { tx, ty };
 
+      if (onMove) onMove(nx, ny);
       return { tx: nx, ty: ny };
     });
-  }, []);
+  }, [onMove]);
 
   // Keyboard support — WASD and arrow keys
   useEffect(() => {

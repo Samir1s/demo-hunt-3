@@ -70,7 +70,7 @@ export function LandingScreen() {
   };
 
   const handleEnterCreatedRoom = () => {
-    setScreen('character-select');
+    setScreen('lobby');
   };
 
   // ── JOIN Room ────────────────────────────────────────────────────────────
@@ -99,13 +99,13 @@ export function LandingScreen() {
       setRoomCode(code);
       const playerId = `agent_${agentCodename.trim().toLowerCase()}_${Date.now().toString(36)}`;
       setPlayerId(playerId);
-      setScreen('character-select');
+      setScreen('lobby');
     } catch {
       // If server unreachable, try connecting anyway (getOrCreateRoom fallback)
       setRoomCode(code);
       const playerId = `agent_${agentCodename.trim().toLowerCase()}_${Date.now().toString(36)}`;
       setPlayerId(playerId);
-      setScreen('character-select');
+      setScreen('lobby');
     }
   };
 
