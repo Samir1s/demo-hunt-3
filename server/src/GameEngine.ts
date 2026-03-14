@@ -31,6 +31,8 @@ export class GameEngine {
   private orbBroadcastTimer: ReturnType<typeof setInterval> | null = null;
   private tickCount = 0;
   private lastCatchAttempt: number = 0; // anti-spam cooldown
+  private lastAccuseAttempt: Map<string, number> = new Map(); // per-player accusation cooldown
+  private static readonly ACCUSE_COOLDOWN_MS = 10_000; // 10 seconds between accusations
 
   constructor(room: Room, io: Server) {
     this.room = room;
@@ -79,6 +81,15 @@ export class GameEngine {
   } {
     const player = this.room.players.get(playerId);
     if (!player) return { accepted: false, finalX: 0, finalY: 0, wallBump: null };
+
+    // ── Anti-teleport: max move distance is 2 tiles per request ───────
+    const moveDx = newX - player.x;
+    const moveDy = newY - player.y;
+    const moveDist = Math.sqrt(moveDx * moveDx + moveDy * moveDy);
+    if (moveDist > 2) {
+      console.log(`[engine:${this.room.code}] ⛔ Teleport blocked for ${playerId} (dist=${moveDist.toFixed(1)})`);
+      return { accepted: false, finalX: player.x, finalY: player.y, wallBump: null };
+    }
 
     const size = CONFIG.WORLD_SIZE;
 
@@ -481,6 +492,14 @@ export class GameEngine {
 
     if (!accuser || !accused) return { success: false, correct: false };
     if (accuser.role !== 'security') return { success: false, correct: false };
+
+    // ── Anti-spam: per-player accusation cooldown ─────────────────────
+    const now = Date.now();
+    const lastAccuse = this.lastAccuseAttempt.get(accuserId) ?? 0;
+    if (now - lastAccuse < GameEngine.ACCUSE_COOLDOWN_MS) {
+      return { success: false, correct: false };
+    }
+    this.lastAccuseAttempt.set(accuserId, now);
 
     const isCorrect = accused.role === 'demogorgon';
 

@@ -32,16 +32,19 @@ export function RoleRevealScreen() {
   const SECURITY_OBJECTIVE = secretObjective || "Monitor radar signatures and coordinate agent movements. Identify and accuse the Demogorgon before it catches all agents.";
   const DEMOGORGON_OBJECTIVE = secretObjective || "Hunt. Feed. Consume. Eliminate all agents before they identify you. You are the apex predator of the Upside Down.";
 
-  // Auto-advance: host starts game, non-host waits
+  // Auto-advance: host starts game after reveal delay
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isHost) {
         emitStartGame();
+        // gameStarted socket event will trigger setScreen('game')
+        // Only fallback to lobby if NOT connected (offline mode)
+        if (!useGameStore.getState().isConnected) {
+          setScreen('lobby');
+        }
       }
-      // setScreen('game') will be triggered by the 'gameStarted' socket event
-      // Fallback for offline mode:
-      setScreen('lobby');
-    }, AUTO_ADVANCE_MS);
+      // Non-host: just wait for gameStarted event — NO fallback redirect
+    }, 8000); // 8s to give extra buffer for network lag
     return () => clearTimeout(timer);
   }, [setScreen, isHost, emitStartGame]);
 

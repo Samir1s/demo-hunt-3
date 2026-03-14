@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
@@ -25,19 +25,22 @@ const cardVariants: Variants = {
 };
 
 export function CharacterSelectScreen() {
-  const { setScreen, setAgent, selectedAgent, lockedCharacters, playerId, isHost, players } = useGameStore();
+  const { selectedAgent, lockedCharacters, playerId, isHost, players } = useGameStore();
   const { emitLockCharacter, emitLockLobby } = useSocket();
   const [hovered, setHovered] = useState<string | null>(null);
+  const [waitingForHost, setWaitingForHost] = useState(false);
 
-  // Auto-connect socket when this screen mounts
-  const { } = useSocket();
+  // Fix 6: Check if all players have selected a character
+  const allPlayersReady = players.length > 0 && players.every(
+    (p: any) => Object.values(lockedCharacters).includes(p.id)
+  );
 
   const handleSelect = (agentId: CharacterId) => {
     const isTaken = Object.keys(lockedCharacters).includes(agentId) &&
                     lockedCharacters[agentId] !== playerId;
     if (isTaken) return;
 
-    setAgent(agentId);
+    // Fix 5: Don't set agent locally — wait for server confirmation via characterLocked event
     emitLockCharacter(agentId);
   };
 
@@ -45,11 +48,11 @@ export function CharacterSelectScreen() {
     if (!selectedAgent) return;
 
     if (isHost) {
-      // Host locks the lobby & triggers role reveal
+      // Fix 6: Host locks the lobby & triggers role reveal (button already disabled if not all ready)
       emitLockLobby();
     } else {
-      // Non-host: wait for host to lock lobby
-      setScreen('reveal');
+      // Fix 3: Non-host should NOT navigate — just show waiting state
+      setWaitingForHost(true);
     }
   };
 
@@ -173,31 +176,33 @@ export function CharacterSelectScreen() {
       <motion.div className="mt-8 w-full max-w-2xl flex justify-between items-center">
         {/* Host indicator */}
         {isHost && (
-          <div className="font-mono text-xs text-yellow-400/80 tracking-widest flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-            YOU ARE HOST
+          <div className="font-mono text-xs tracking-widest flex items-center gap-2" style={{ color: allPlayersReady ? 'rgba(250,204,21,0.8)' : 'rgba(255,255,255,0.3)' }}>
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: allPlayersReady ? '#facc15' : 'rgba(255,255,255,0.3)' }} />
+            {allPlayersReady ? 'ALL AGENTS READY' : `WAITING FOR AGENTS (${Object.keys(lockedCharacters).length}/${players.length})`}
           </div>
         )}
         {!isHost && (
           <div className="font-mono text-xs text-white/30 tracking-widest">
-            Waiting for host to start...
+            {waitingForHost ? '⏳ Locked in. Waiting for host to start...' : 'Waiting for host to start...'}
           </div>
         )}
 
         <motion.button
           onClick={handleConfirm}
-          disabled={!selectedAgent}
+          disabled={!selectedAgent || (isHost && !allPlayersReady)}
           className={clsx(
             'px-10 py-3 font-display text-sm tracking-widest uppercase border-2 transition-all duration-300',
-            selectedAgent
+            selectedAgent && (!isHost || allPlayersReady)
               ? 'border-accent-cyan text-accent-cyan hover:bg-accent-cyan hover:text-void'
               : 'border-white/10 text-white/20 cursor-not-allowed'
           )}
-          whileHover={selectedAgent ? { scale: 1.03 } : {}}
-          whileTap={selectedAgent ? { scale: 0.97 } : {}}
-          style={selectedAgent ? { boxShadow: '0 0 20px rgba(6,182,212,0.3)' } : {}}
+          whileHover={selectedAgent && (!isHost || allPlayersReady) ? { scale: 1.03 } : {}}
+          whileTap={selectedAgent && (!isHost || allPlayersReady) ? { scale: 0.97 } : {}}
+          style={selectedAgent && (!isHost || allPlayersReady) ? { boxShadow: '0 0 20px rgba(6,182,212,0.3)' } : {}}
         >
-          {isHost ? 'Lock & Reveal Roles →' : 'Confirm Agent →'}
+          {isHost
+            ? (allPlayersReady ? 'Lock & Reveal Roles →' : 'Waiting for agents...')
+            : (waitingForHost ? '✓ Ready' : 'Confirm Agent →')}
         </motion.button>
       </motion.div>
 

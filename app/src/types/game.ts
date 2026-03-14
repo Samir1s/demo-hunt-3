@@ -11,6 +11,7 @@ export interface Player {
   character?: CharacterId | null;
   score?: number;
   isHost?: boolean;
+  isDemogorgon?: boolean;
 }
 
 export interface IntelEvent {

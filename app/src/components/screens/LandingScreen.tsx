@@ -5,6 +5,9 @@ import { useGameStore } from '../../store/gameStore';
 
 // Auto-detect server URL for LAN/mobile support
 function getServerUrl(): string {
+  if (import.meta.env.VITE_SERVER_URL) {
+    return import.meta.env.VITE_SERVER_URL;
+  }
   const hostname = window.location.hostname || 'localhost';
   return `http://${hostname}:3001`;
 }

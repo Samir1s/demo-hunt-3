@@ -1,0 +1,4 @@
+src/components/screens/CharacterSelectScreen.tsx(1,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/screens/CharacterSelectScreen.tsx(31,10): error TS6133: 'waitingForHost' is declared but its value is never read.
+src/components/screens/CharacterSelectScreen.tsx(34,9): error TS6133: 'allPlayersReady' is declared but its value is never read.
+src/components/screens/LobbyScreen.tsx(125,12): error TS2739: Type '{}' is missing the following properties from type '{ playerTx: number; playerTy: number; }': playerTx, playerTy

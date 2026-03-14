@@ -112,8 +112,8 @@ export const CONFIG = {
   GAME_DURATION_MS: 5 * 60 * 1000,       // 5 minutes
   TICK_RATE_MS: 100,                       // 10Hz game loop
   MOVEMENT_VALIDATION_MS: 50,             // 20Hz spatial check
-  ALERT_TRIGGER_RADIUS: 120,              // proximity trigger distance
-  ALERT_RELEASE_RADIUS: 135,              // proximity release distance (hysteresis)
+  ALERT_TRIGGER_RADIUS: 8,                // proximity trigger distance (tiles)
+  ALERT_RELEASE_RADIUS: 10,               // proximity release distance (hysteresis, tiles)
   ORB_COUNT_MIN: 8,
   ORB_COUNT_MAX: 12,
   ORB_PICKUP_RADIUS: 5,

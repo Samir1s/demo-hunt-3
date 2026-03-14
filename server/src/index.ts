@@ -135,8 +135,17 @@ io.on('connection', (socket) => {
     const room = rooms.get(info.roomCode);
     if (!room) return;
 
-    const success = room.lockCharacter(info.playerId, data.character);
-    if (success) {
+    const result = room.lockCharacter(info.playerId, data.character);
+    if (result.success) {
+      // Fix 1: If player switched from another character, broadcast the release first
+      if (result.releasedCharacter) {
+        io.to(info.roomCode).emit('characterReleased', {
+          playerId: info.playerId,
+          character: result.releasedCharacter,
+          availableCharacters: room.getAvailableCharacters(),
+        });
+      }
+
       io.to(info.roomCode).emit('characterLocked', {
         playerId: info.playerId,
         character: data.character,
@@ -173,6 +182,13 @@ io.on('connection', (socket) => {
     const room = rooms.get(info.roomCode);
     if (!room) return;
 
+    // Fix 2: Verify requester is actually the host
+    const requester = room.players.get(info.playerId);
+    if (!requester?.isHost) {
+      socket.emit('error', { message: 'Only the host can lock the lobby.' });
+      return;
+    }
+
     // Transition to role reveal
     if (!room.transitionToRoleReveal(info.playerId)) {
       socket.emit('error', { message: 'Not all players have selected a character.' });
@@ -203,6 +219,13 @@ io.on('connection', (socket) => {
 
     const room = rooms.get(info.roomCode);
     if (!room) return;
+
+    // Fix 2: Verify requester is actually the host
+    const requester = room.players.get(info.playerId);
+    if (!requester?.isHost) {
+      socket.emit('error', { message: 'Only the host can start the game.' });
+      return;
+    }
 
     // Spawn players at random floor tiles
     for (const player of room.players.values()) {

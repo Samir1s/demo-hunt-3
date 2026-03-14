@@ -7,11 +7,15 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export function LobbyScreen() {
-  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role } = useGameStore();
+  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role, playerId } = useGameStore();
   const { emitStartGame } = useSocket();
 
   const actualRole = role ?? viewAs;
   const isDemo = actualRole === 'demogorgon';
+
+  const myPlayer = players.find(p => p.id === playerId);
+  const playerTx = myPlayer?.x ?? 0;
+  const playerTy = myPlayer?.y ?? 0;
 
   return (
     <div className={clsx(
@@ -122,7 +126,7 @@ export function LobbyScreen() {
 
         {/* Center Col: Radar */}
         <div className="col-span-1 md:col-span-1 flex items-center justify-center">
-          <Radar />
+          <Radar playerTx={playerTx} playerTy={playerTy} />
         </div>
 
         {/* Right Col: Intel Feed */}

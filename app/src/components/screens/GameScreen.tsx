@@ -44,33 +44,45 @@ export function GameScreen() {
   // Player starts near center
   const { tx, ty, move } = usePlayerMovement({ initialTx: 20, initialTy: 20 });
 
-  // Broadcast position on move
+  // Broadcast position on move — compute new pos THEN emit (fixes desync)
   const handleMove = (dir: Direction) => {
+    // move() updates React state, but we need the NEW coords for emit
+    // Calculate new position ourselves to avoid async state lag
+    const dirMap: Record<Direction, [number, number]> = {
+      up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0],
+    };
+    const [ddx, ddy] = dirMap[dir];
+    const newX = Math.max(1, Math.min(38, tx + ddx));
+    const newY = Math.max(1, Math.min(38, ty + ddy));
     move(dir);
     if (isConnected) {
-      emitPosition(tx, ty);
+      emitPosition(newX, newY);
     } else {
-      emitPositionLegacy(tx, ty);
+      emitPositionLegacy(newX, newY);
     }
   };
 
-  // Build sprite list from store — server sends tile coords directly, no conversion needed
-  const sprites: SpriteState[] = [
-    ...(!isDemo ? [{
-      id: 'demogorgon',
-      name: 'demogorgon',
-      tx: demogorgonCoords.x,
-      ty: demogorgonCoords.y,
-      isDemogorgon: true,
-    }] : []),
-    ...players.map((p) => ({
+  // Build sprite list from store — identify demogorgon from player data
+  // The server sends the demogorgon's position in the players array for fog-of-war
+  const myId = useGameStore.getState().playerId;
+  const demogorgonPlayer = players.find(p => p.isDemogorgon === true);
+
+  // Update demogorgon coords in store when we detect the demogorgon player
+  useEffect(() => {
+    if (demogorgonPlayer) {
+      useGameStore.getState().updateDemogorgonCoords({ x: demogorgonPlayer.x, y: demogorgonPlayer.y });
+    }
+  }, [demogorgonPlayer?.x, demogorgonPlayer?.y]);
+
+  const sprites: SpriteState[] = players
+    .filter(p => p.id !== myId) // don't render self, handled by playerTx/playerTy
+    .map((p) => ({
       id: p.id,
       name: p.character ?? selectedAgent ?? 'hopper',
-      tx: p.x,  // Server tile coords — used directly
+      tx: p.x,
       ty: p.y,
-      isDemogorgon: false,
-    })),
-  ];
+      isDemogorgon: !!p.isDemogorgon,
+    }));
 
   // Measure container
   const w = containerRef.current?.clientWidth  || 640;
@@ -109,7 +121,11 @@ export function GameScreen() {
       // Fix 2: Server-authoritative catch — just press CATCH, server finds nearest
       emitCatch(); // No targetId! Server auto-finds nearest within 1.5 tiles + 2s cooldown
     } else {
-      const closestAgent = activePlayers[0];
+      // Target the NEAREST active player, not hardcoded [0]
+      const sortedByDist = activePlayers
+        .map(p => ({ ...p, dist: Math.hypot(tx - p.x, ty - p.y) }))
+        .sort((a, b) => a.dist - b.dist);
+      const closestAgent = sortedByDist[0];
       if (closestAgent) {
         emitAccuse(closestAgent.id);
       }

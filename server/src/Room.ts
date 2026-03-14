@@ -159,23 +159,32 @@ export class Room {
 
   // ── Character Locking (Block 2) ──────────────────────────────────────────
 
-  /** First-come-first-served character lock. Returns true on success. */
-  lockCharacter(playerId: string, character: CharacterId): boolean {
-    if (this.phase !== GamePhase.LOBBY && this.phase !== GamePhase.CHARACTER_SELECT) return false;
-    if (!ALL_CHARACTERS.includes(character)) return false;
-    if (this.lockedCharacters.has(character)) return false; // already taken
+  /** First-come-first-served character lock. Returns result object with released character info. */
+  lockCharacter(playerId: string, character: CharacterId): { success: boolean; releasedCharacter: CharacterId | null } {
+    if (this.phase !== GamePhase.LOBBY && this.phase !== GamePhase.CHARACTER_SELECT) return { success: false, releasedCharacter: null };
+    if (!ALL_CHARACTERS.includes(character)) return { success: false, releasedCharacter: null };
 
     const player = this.players.get(playerId);
-    if (!player) return false;
+    if (!player) return { success: false, releasedCharacter: null };
 
-    // Release previous character if switching
+    // Fix 4: If player re-selects their own character, just confirm it (no error)
+    if (player.character === character) return { success: true, releasedCharacter: null };
+
+    // If taken by someone else, reject
+    if (this.lockedCharacters.has(character) && this.lockedCharacters.get(character) !== playerId) {
+      return { success: false, releasedCharacter: null };
+    }
+
+    // Fix 1: Release previous character if switching, and track it
+    let releasedCharacter: CharacterId | null = null;
     if (player.character) {
+      releasedCharacter = player.character;
       this.lockedCharacters.delete(player.character);
     }
 
     player.character = character;
     this.lockedCharacters.set(character, playerId);
-    return true;
+    return { success: true, releasedCharacter };
   }
 
   /** Get list of available (unlocked) characters */
