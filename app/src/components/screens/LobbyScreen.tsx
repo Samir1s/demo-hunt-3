@@ -7,8 +7,8 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export function LobbyScreen() {
-  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role, playerId, serverError } = useGameStore();
-  const { emitStartGame, emitStartCharacterSelect } = useSocket();
+  const { viewAs, players, proximityAlertActive, isHost, isConnected, roomCode, playerScore, role, playerId, serverError } = useGameStore();
+  const { emitStartCharacterSelect } = useSocket();
 
   const actualRole = role ?? viewAs;
   const isDemo = actualRole === 'demogorgon';
