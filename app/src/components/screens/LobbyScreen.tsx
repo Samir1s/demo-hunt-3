@@ -1,4 +1,5 @@
 import { useGameStore } from '../../store/gameStore';
+import { useSocket } from '../../hooks/useSocket';
 import { Radar } from '../radar/Radar';
 import { LogFeed } from '../radar/LogFeed';
 
@@ -6,14 +7,11 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export function LobbyScreen() {
-  const { viewAs, players, proximityAlertActive, setScreen } = useGameStore();
+  const { viewAs, players, proximityAlertActive, setScreen, isHost, isConnected, roomCode, playerScore, role } = useGameStore();
+  const { emitStartGame } = useSocket();
 
-  const isDemo = viewAs === 'demogorgon';
-
-  // For Demo view, maybe we flash screen or change state when alert is active
-  if (proximityAlertActive && isDemo) {
-    // Optionally trigger hero screen after a delay or user click
-  }
+  const actualRole = role ?? viewAs;
+  const isDemo = actualRole === 'demogorgon';
 
   return (
     <div className={clsx(
@@ -22,10 +20,25 @@ export function LobbyScreen() {
     )}>
       {/* Header */}
       <header className="flex justify-between items-center mb-8 border-b pb-4" style={{ borderColor: isDemo ? 'rgba(127,29,29,0.5)' : 'rgba(6,182,212,0.3)' }}>
-        <h1 className="text-2xl font-display tracking-widest">
-          {isDemo ? 'HIVE MIND NEURAL LINK' : 'HAWKINS LAB SECUR/OS v4.2'}
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-display tracking-widest">
+            {isDemo ? 'HIVE MIND NEURAL LINK' : 'HAWKINS LAB SECUR/OS v4.2'}
+          </h1>
+          {/* Connection indicator */}
+          <div className={clsx(
+            "flex items-center gap-2 font-mono text-xs tracking-widest",
+            isConnected ? "text-green-400" : "text-yellow-500"
+          )}>
+            <span className={clsx("w-2 h-2 rounded-full", isConnected ? "bg-green-400 animate-pulse" : "bg-yellow-500")} />
+            {isConnected ? 'ONLINE' : 'OFFLINE'}
+          </div>
+        </div>
         <div className="text-sm font-mono flex items-center gap-4">
+          {roomCode && (
+            <span className="text-white/30 tracking-widest text-xs">
+              ROOM: {roomCode}
+            </span>
+          )}
           <span className={clsx("animate-pulse", proximityAlertActive ? "text-accent-red" : "")}>
             STATUS: {proximityAlertActive ? 'CRITICAL PROXIMITY' : 'NOMINAL'}
           </span>
@@ -41,7 +54,7 @@ export function LobbyScreen() {
       {/* Main Grid */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 overflow-hidden">
         
-        {/* Left Col: Roster (if security) / Targets (if demo) */}
+        {/* Left Col: Roster */}
         <div className="col-span-1 border p-4 flex flex-col overflow-hidden" style={{ borderColor: isDemo ? 'rgba(127,29,29,0.3)' : 'rgba(6,182,212,0.3)' }}>
           <h2 className="mb-4 uppercase tracking-widest border-b pb-2" style={{ borderColor: isDemo ? 'rgba(127,29,29,0.5)' : 'rgba(6,182,212,0.3)' }}>
             {isDemo ? 'AVAILABLE BIOMASS' : 'PERSONNEL TRACKING'}
@@ -49,20 +62,40 @@ export function LobbyScreen() {
           <div className="flex-1 overflow-y-auto space-y-4 font-mono text-sm">
             {players.filter(p => !isDemo || p.name !== 'Unknown Entity').map(player => (
               <div key={player.id} className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: isDemo ? 'rgba(127,29,29,0.1)' : 'rgba(6,182,212,0.05)' }}>
-                <span>{player.name}</span>
-                <span className={clsx(
-                  "text-xs px-2 py-1 rounded border",
-                  player.status === 'safe' && !isDemo ? 'border-accent-cyan text-accent-cyan' :
-                  player.status === 'danger' || isDemo ? 'border-accent-red text-accent-red animate-pulse' :
-                  'border-yellow-500 text-yellow-500'
-                )}>
-                  {isDemo ? 'TARGET' : player.status.toUpperCase()}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span>{player.name}</span>
+                  {player.isHost && (
+                    <span className="text-[10px] text-yellow-400/80 font-bold">👑</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {player.character && (
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider">
+                      {player.character}
+                    </span>
+                  )}
+                  <span className={clsx(
+                    "text-xs px-2 py-1 rounded border",
+                    player.status === 'safe' && !isDemo ? 'border-accent-cyan text-accent-cyan' :
+                    player.status === 'danger' || isDemo ? 'border-accent-red text-accent-red animate-pulse' :
+                    'border-yellow-500 text-yellow-500'
+                  )}>
+                    {isDemo ? 'TARGET' : player.status.toUpperCase()}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Action Button for Deployment */}
+          {/* Score display */}
+          {playerScore > 0 && (
+            <div className="mt-3 flex items-center justify-between font-mono text-xs border-t pt-2" style={{ borderColor: 'rgba(6,182,212,0.2)' }}>
+              <span className="text-white/40 tracking-widest">ENERGY COLLECTED</span>
+              <span className="text-yellow-400 font-bold text-lg">{playerScore}</span>
+            </div>
+          )}
+
+          {/* Action Button */}
           <motion.button 
             className={clsx(
               "mt-4 p-4 font-display text-xl uppercase tracking-wider border-2 transition-all",
@@ -71,11 +104,19 @@ export function LobbyScreen() {
             )}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            onClick={() => setScreen('game')}
+            onClick={() => {
+              if (isHost) {
+                emitStartGame();
+              }
+              setScreen('game');
+            }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {isDemo ? 'ENTER THE UPSIDE DOWN' : 'DEPLOY TO THE FIELD'}
+            {isHost
+              ? (isDemo ? 'ENTER THE UPSIDE DOWN' : 'DEPLOY ALL AGENTS')
+              : (isDemo ? 'WAITING TO HUNT...' : 'WAITING FOR DEPLOYMENT...')
+            }
           </motion.button>
         </div>
 

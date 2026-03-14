@@ -1,114 +1,197 @@
-# 🧪 HAWKINS NATIONAL LABORATORY: RADAR INTERFACE
+<p align="center">
+  <img src="docs/banner.png" alt="Demogorgon Hunt Banner" width="100%" />
+</p>
 
-A high-fidelity, retro-futuristic radar simulation interface inspired by the "Upside Down" lore. This project features a CRT-aesthetic dashboard, real-time entity tracking, and a dynamic "Demogorgon" proximity alert system.
+<h1 align="center">🦷 DEMOGORGON HUNT</h1>
 
-## 🌌 Project Overview
+<p align="center">
+  <b>A real-time multiplayer social deduction game set in the Stranger Things universe</b><br/>
+  <sub>Built with React · Socket.IO · Canvas · Framer Motion · Zustand</sub>
+</p>
 
-This application simulates a classified military monitoring station. It tracks multiple "agents" and a hostile "Unknown Entity" (Demogorgon) within the Hawkins vicinity. The interface is designed with a heavy 1980s computing aesthetic, featuring scanlines, chromatic aberration, and glitch effects.
-
-### Key Features
-- **📟 CRT Simulation**: Global scanline overlays, vignette effects, and phosphor-glow styling.
-- **📡 Real-time Radar**: An SVG-based concentric radar system with a continuous sweep line and entity blips.
-- **👾 Proximity Alerts**: High-priority screen-shake and flashing red alerts when the "Unknown Entity" enters a 15m radius of any agent.
-- **🌑 Dual Perspectives**: Switch between "Security View" (Hawkins Lab) and "Entity View" (The Upside Down), each with unique color schemes and thematic copy.
-- **🧠 State Management**: Powered by Zustand to handle screen transitions, agent coordinates, and event logs.
-- **🔄 Dynamic Simulation**: A custom hook manages the movement of the Demogorgon, which stalks agents in real-time.
-
----
-
-## 🛠️ Tech Stack
-
-- **Frontend Framework**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite 6](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS v3](https://tailwindcss.com/)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Simulation Hooks**: [react-use](https://github.com/streamich/react-use)
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" />
+  <img src="https://img.shields.io/badge/Socket.IO-4.8-010101?style=flat-square&logo=socket.io" />
+  <img src="https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript" />
+  <img src="https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js" />
+</p>
 
 ---
 
-## 📂 Directory Structure
+## 🎮 About
 
-```text
-app/
-├── src/
-│   ├── components/
-│   │   ├── controls/     # Global toggles and demo panels
-│   │   ├── radar/        # SVG Radar components (Sweep, Blips, Canvas)
-│   │   ├── screens/      # Full-page screen components (Lobby, Hero, etc.)
-│   │   └── ui/           # Reusable UI elements (CRTOverlay, GlitchText)
-│   ├── data/             # Hardcoded player/agent profiles
-│   ├── hooks/            # useGameSimulation and other custom logic
-│   ├── store/            # Zustand gameStore implementation
-│   ├── styles/           # Tailwind globals and CRT effects
-│   ├── types/            # TypeScript interfaces/types
-│   ├── App.tsx           # Main router and screen orchestrator
-│   └── main.tsx          # Application entry point
-├── public/               # Static assets
-└── tailwind.config.js    # Custom CRT color palette and theme extensions
+**Demogorgon Hunt** is a multiplayer social deduction game where players take on the roles of **Security agents** patrolling Hawkins National Laboratory, while one hidden player is the **Demogorgon** — a monster from the Upside Down hunting them down.
+
+- **Security agents** must identify and accuse the Demogorgon before it catches everyone
+- **The Demogorgon** must hunt and eliminate all agents while keeping its identity hidden
+- Real-time movement on a **tile-based map** with **fog of war**, **proximity alerts**, and **energy orbs**
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🏠 **Room System** | Create rooms with unique codes, share with friends to join |
+| 🎭 **Role Assignment** | Server-side random role assignment — no identity leaks |
+| 🗺️ **Tile-Based World** | 40×40 procedural dungeon with walls, corridors, and secret paths |
+| 🔦 **Fog of War** | Security agents can only see players within 6 tiles |
+| 📡 **Proximity Radar** | Player-relative radar with edge-clamped blips |
+| 🎯 **Server-Authoritative** | All movement, catches, and proximity validated server-side |
+| 🔄 **Reconnection** | 30s grace period + auto-reconnect on network drops |
+| 📱 **Mobile Ready** | Touch D-Pad, iOS motion permission, auto-detect LAN URL |
+| ⚡ **Energy Orbs** | Collectible orbs for scoring and power-ups |
+| 🎨 **Premium UI** | Stranger Things aesthetic with CRT effects, glitch text, animations |
+
+## 🏗️ Architecture
+
+```
+demogorgon-hunt/
+├── app/                          # React Frontend (Vite)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── screens/          # LandingScreen, CharacterSelect, RoleReveal, Game, Lobby
+│   │   │   ├── canvas/           # GameCanvas (tile renderer), DPadOverlay
+│   │   │   ├── radar/            # Player-relative Radar
+│   │   │   └── ui/               # GlitchText, Typewriter, shared UI
+│   │   ├── hooks/                # useSocket, usePlayerMovement
+│   │   ├── store/                # Zustand game store
+│   │   ├── data/                 # Game map, character data
+│   │   ├── utils/                # Coordinate utils
+│   │   └── types/                # TypeScript types
+│   └── package.json
+│
+├── server/                       # Node.js Backend
+│   ├── src/
+│   │   ├── index.ts              # Express + Socket.IO server
+│   │   ├── Room.ts               # Room management, player lifecycle
+│   │   ├── GameEngine.ts         # Movement, proximity, catch, fog of war
+│   │   ├── gameMap.ts            # Procedural dungeon generation
+│   │   └── types.ts              # Shared types & config
+│   └── package.json
+└── README.md
 ```
 
----
-
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
-### Installation
+- **Node.js** ≥ 22
+- **npm** ≥ 10
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd iiit/app
-   ```
+### 1. Clone & Install
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/Samir1s/demo-hunt-3.git
+cd demo-hunt-3
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+# Install server dependencies
+cd server && npm install && cd ..
 
-4. Build for production:
-   ```bash
-   npm run build
-   ```
+# Install frontend dependencies
+cd app && npm install && cd ..
+```
+
+### 2. Start the Server
+
+```bash
+cd server
+npm run dev
+```
+
+The server starts on **`http://localhost:3001`** with hot-reload via `tsx watch`.
+
+### 3. Start the Frontend
+
+```bash
+cd app
+npm run dev
+```
+
+The frontend starts on **`http://localhost:5173`** (or next available port).
+
+### 4. Play!
+
+1. Open `http://localhost:5173` in your browser
+2. Enter your **Agent Codename**
+3. Click **CREATE ROOM** → share the 6-character code
+4. Other players → click **JOIN ROOM** → enter the code
+5. Select characters → roles are assigned → hunt begins!
+
+> **LAN Play**: Other devices on the same network can join at `http://<your-ip>:5173` — the app auto-detects the server URL.
+
+## 🛡️ Security & Anti-Cheat
+
+| Mechanism | Implementation |
+|---|---|
+| **Server-Authoritative Movement** | Wall collision validated server-side; invalid moves rejected |
+| **No Identity Leak** | `getLobbyState()` never sends Demogorgon ID; roles sent privately |
+| **Server-Side Catch** | Demogorgon presses CATCH → server finds nearest player within 1.5 tiles |
+| **Catch Cooldown** | 2-second cooldown prevents catch-spam |
+| **Fog of War** | Per-player filtered snapshots; Security only sees 6-tile radius |
+| **Reconnection Grace** | 30-second grace period during active games; instant remove in lobby |
+
+## 🎨 Tech Stack
+
+### Frontend
+- **React 19** — UI components
+- **Vite 8** — Lightning-fast dev server and bundler
+- **Zustand** — Lightweight state management
+- **Framer Motion** — Smooth animations and transitions
+- **Socket.IO Client** — Real-time bidirectional communication
+- **HTML Canvas** — Tile-based game renderer with lighting effects
+- **TailwindCSS** — Utility-first styling
+
+### Backend
+- **Node.js + Express** — HTTP server and REST API
+- **Socket.IO** — WebSocket-based real-time events
+- **TypeScript** — Full type safety across the stack
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Server health check |
+| `GET` | `/rooms` | List active rooms (debug/admin) |
+| `POST` | `/api/create-room` | Generate a new room with unique code |
+| `GET` | `/api/room/:code` | Check if room exists + player count |
+
+## 🎮 Socket Events
+
+### Client → Server
+| Event | Payload | Description |
+|---|---|---|
+| `joinRoom` | `{ roomCode, playerId, playerName }` | Join/rejoin a room |
+| `lockCharacter` | `{ character }` | Lock a character in selection |
+| `startGame` | — | Host starts the game |
+| `moveRequest` | `{ x, y }` | Request movement (server validates) |
+| `catchAttempt` | `{}` | Demogorgon attempts catch (auto-target) |
+| `accuseAttempt` | `{ accusedPlayerId }` | Security accuses a player |
+
+### Server → Client
+| Event | Payload | Description |
+|---|---|---|
+| `lobbyState` | Room data | Full room state on join |
+| `roleRevealed` | `{ role, allyIds, objective }` | Private role assignment |
+| `gameSnapshot` | Compressed state | 10Hz game state tick |
+| `proximityUpdate` | `{ value, entering, leaving }` | Proximity hysteresis |
+| `catchResult` | `{ success, targetName }` | Catch attempt feedback |
+| `gameOver` | `{ winner, fates }` | Game end event |
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is built for the **IIIT Hackathon 2025**.
 
 ---
 
-## 🛡️ Interface Protocol (Screens)
-
-1. **Boot Sequence**: System initialization and hardware checks.
-2. **Lobby/Ready**: Agent roster display and "Protocol Initiation".
-3. **Main HUD (Hero)**: 
-   - **Left Panel**: Agent status, signal strength, and health.
-   - **Center Panel**: Real-time SVG Radar tracking.
-   - **Right Panel**: Live "Intel Feed" log of events.
-4. **Proximity Alert**: Emergency override when a threat is detected within 15 meters.
-
-## 🧪 Simulation Logic
-
-The Demogorgon's behavior is dictated by `useGameSimulation.ts`:
-- It moves toward a random player every 2 seconds.
-- It calculates distance using the Euclidean formula.
-- It triggers a global `proximityAlertActive` state in the store if any agent is in danger.
-
----
-
-## 🎨 Design System
-
-The project uses a custom color palette defined in `tailwind.config.js`:
-- `bg-void`: The deep black background.
-- `accent-cyan`: Security/Lab primary color.
-- `accent-red`: Hostile/Entity primary color.
-- `bg-surface`: Component background with transparency.
-
----
-
-*“Friends don’t lie. But the Lab does.”*
+<p align="center">
+  <sub>Built with ❤️ at Hawkins National Laboratory</sub><br/>
+  <sub><i>"Friends don't lie."</i> — Eleven</sub>
+</p>

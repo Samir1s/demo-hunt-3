@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
+import { useSocket } from '../../hooks/useSocket';
 import clsx from 'clsx';
+import type { CharacterId } from '../../types/game';
 
-const AGENTS = [
-  { id: 'eleven',  name: 'ELEVEN',  role: 'Psychic Operative', color: '#ec4899', taken: false },
-  { id: 'hopper',  name: 'HOPPER',  role: 'Field Commander',   color: '#06b6d4', taken: true  },
-  { id: 'joyce',   name: 'JOYCE',   role: 'Signals Analyst',   color: '#f59e0b', taken: false },
-  { id: 'mike',    name: 'MIKE',    role: 'Tactical Lead',     color: '#8b5cf6', taken: false },
-  { id: 'dustin',  name: 'DUSTIN',  role: 'Tech Specialist',   color: '#10b981', taken: false },
-  { id: 'max',     name: 'MAX',     role: 'Recon Agent',       color: '#ef4444', taken: false },
+const AGENTS: { id: CharacterId; name: string; role: string; color: string }[] = [
+  { id: 'eleven',  name: 'ELEVEN',  role: 'Psychic Operative', color: '#ec4899' },
+  { id: 'hopper',  name: 'HOPPER',  role: 'Field Commander',   color: '#06b6d4' },
+  { id: 'joyce',   name: 'JOYCE',   role: 'Signals Analyst',   color: '#f59e0b' },
+  { id: 'mike',    name: 'MIKE',    role: 'Tactical Lead',     color: '#8b5cf6' },
+  { id: 'dustin',  name: 'DUSTIN',  role: 'Tech Specialist',   color: '#10b981' },
+  { id: 'max',     name: 'MAX',     role: 'Recon Agent',       color: '#ef4444' },
 ];
 
 const cardVariants: Variants = {
@@ -23,12 +25,38 @@ const cardVariants: Variants = {
 };
 
 export function CharacterSelectScreen() {
-  const { setScreen, setAgent, selectedAgent } = useGameStore();
+  const { setScreen, setAgent, selectedAgent, lockedCharacters, playerId, isHost, players } = useGameStore();
+  const { emitLockCharacter, emitLockLobby } = useSocket();
   const [hovered, setHovered] = useState<string | null>(null);
+
+  // Auto-connect socket when this screen mounts
+  const { } = useSocket();
+
+  const handleSelect = (agentId: CharacterId) => {
+    const isTaken = Object.keys(lockedCharacters).includes(agentId) &&
+                    lockedCharacters[agentId] !== playerId;
+    if (isTaken) return;
+
+    setAgent(agentId);
+    emitLockCharacter(agentId);
+  };
 
   const handleConfirm = () => {
     if (!selectedAgent) return;
-    setScreen('reveal');
+
+    if (isHost) {
+      // Host locks the lobby & triggers role reveal
+      emitLockLobby();
+    } else {
+      // Non-host: wait for host to lock lobby
+      setScreen('reveal');
+    }
+  };
+
+  // Check if a character is taken by another player
+  const isTakenByOther = (agentId: string) => {
+    return Object.keys(lockedCharacters).includes(agentId) &&
+           lockedCharacters[agentId] !== playerId;
   };
 
   return (
@@ -42,6 +70,14 @@ export function CharacterSelectScreen() {
       {/* Scanline accent at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-accent-cyan/40" />
 
+      {/* Player count badge */}
+      <div className="absolute top-6 right-8 flex items-center gap-3">
+        <div className="font-mono text-xs text-accent-cyan/60 tracking-widest">
+          {players.length} AGENTS ONLINE
+        </div>
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+      </div>
+
       {/* Header */}
       <div className="mb-8 text-center">
         <p className="font-mono text-xs tracking-[0.4em] text-accent-cyan/50 mb-2 uppercase">
@@ -51,14 +87,16 @@ export function CharacterSelectScreen() {
           Select Your Agent
         </h1>
         <p className="font-mono text-xs text-accent-cyan/40 mt-2 tracking-widest">
-          Choose your operative. Some agents are already in the field.
+          Choose your operative. Locked agents are in the field.
         </p>
       </div>
 
       {/* 3x2 Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-2xl">
         {AGENTS.map((agent, i) => {
+          const taken = isTakenByOther(agent.id);
           const isSelected = selectedAgent === agent.id;
+          const isMe = lockedCharacters[agent.id] === playerId;
           const isHovered = hovered === agent.id;
 
           return (
@@ -68,27 +106,27 @@ export function CharacterSelectScreen() {
               variants={cardVariants}
               initial="hidden"
               animate="visible"
-              onClick={() => !agent.taken && setAgent(agent.id)}
-              onHoverStart={() => !agent.taken && setHovered(agent.id)}
+              onClick={() => handleSelect(agent.id)}
+              onHoverStart={() => !taken && setHovered(agent.id)}
               onHoverEnd={() => setHovered(null)}
               className={clsx(
                 'relative border-2 rounded p-5 flex flex-col gap-2 transition-colors duration-200 select-none',
-                agent.taken
+                taken
                   ? 'border-white/10 opacity-40 cursor-not-allowed'
-                  : isSelected
+                  : isSelected || isMe
                   ? 'cursor-pointer'
                   : 'border-white/10 cursor-pointer hover:border-white/30'
               )}
               style={{
-                borderColor: isSelected ? agent.color : isHovered ? `${agent.color}60` : undefined,
-                boxShadow: isSelected ? `0 0 20px ${agent.color}40, inset 0 0 20px ${agent.color}10` : 'none',
-                backgroundColor: isSelected ? `${agent.color}10` : 'transparent',
+                borderColor: isSelected || isMe ? agent.color : isHovered ? `${agent.color}60` : undefined,
+                boxShadow: isSelected || isMe ? `0 0 20px ${agent.color}40, inset 0 0 20px ${agent.color}10` : 'none',
+                backgroundColor: isSelected || isMe ? `${agent.color}10` : 'transparent',
               }}
-              whileHover={!agent.taken ? { scale: 1.03 } : {}}
-              whileTap={!agent.taken ? { scale: 0.97 } : {}}
+              whileHover={!taken ? { scale: 1.03 } : {}}
+              whileTap={!taken ? { scale: 0.97 } : {}}
             >
               {/* TAKEN overlay */}
-              {agent.taken && (
+              {taken && (
                 <div className="absolute inset-0 flex items-center justify-center rounded z-10 bg-black/50">
                   <span className="font-display text-white/60 tracking-[0.3em] text-sm border border-white/20 px-3 py-1">
                     TAKEN
@@ -97,7 +135,7 @@ export function CharacterSelectScreen() {
               )}
 
               {/* Selected checkmark */}
-              {isSelected && (
+              {(isSelected || isMe) && (
                 <motion.div
                   className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-void text-xs font-bold"
                   style={{ backgroundColor: agent.color }}
@@ -132,7 +170,20 @@ export function CharacterSelectScreen() {
       </div>
 
       {/* Confirm CTA */}
-      <motion.div className="mt-8 w-full max-w-2xl flex justify-end">
+      <motion.div className="mt-8 w-full max-w-2xl flex justify-between items-center">
+        {/* Host indicator */}
+        {isHost && (
+          <div className="font-mono text-xs text-yellow-400/80 tracking-widest flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+            YOU ARE HOST
+          </div>
+        )}
+        {!isHost && (
+          <div className="font-mono text-xs text-white/30 tracking-widest">
+            Waiting for host to start...
+          </div>
+        )}
+
         <motion.button
           onClick={handleConfirm}
           disabled={!selectedAgent}
@@ -146,7 +197,7 @@ export function CharacterSelectScreen() {
           whileTap={selectedAgent ? { scale: 0.97 } : {}}
           style={selectedAgent ? { boxShadow: '0 0 20px rgba(6,182,212,0.3)' } : {}}
         >
-          Confirm Agent →
+          {isHost ? 'Lock & Reveal Roles →' : 'Confirm Agent →'}
         </motion.button>
       </motion.div>
 

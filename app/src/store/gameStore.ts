@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { GameState } from '../types/game';
-import { HARDCODED_PLAYERS } from '../data/hardcodedPlayers';
+import type { GameState, CharacterId } from '../types/game';
+
+const ALL_CHARACTERS: CharacterId[] = ['eleven', 'hopper', 'joyce', 'mike', 'dustin', 'max'];
 
 const INITIAL_STATE = {
   screen: 'boot' as const,
   viewAs: 'security' as const,
-  players: HARDCODED_PLAYERS,
+  players: [] as any[], // No ghost players — populated by server events only
   demogorgonCoords: { x: 45, y: 45 },
   intelFeed: [
     {
@@ -16,9 +17,25 @@ const INITIAL_STATE = {
     },
   ],
   proximityAlertActive: false,
-  selectedAgent: null,
+  proximityIntensity: 0,
+  selectedAgent: null as string | null,
   agentCodename: '',
   gameResult: null,
+
+  // ── Multiplayer State ──────────────────────────────────────────────────
+  roomCode: '',
+  playerId: '',
+  isHost: false,
+  isConnected: false,
+  role: null as 'security' | 'demogorgon' | null,
+  lockedCharacters: {} as Record<string, string>,
+  availableCharacters: ALL_CHARACTERS,
+  orbs: [] as { id: string; x: number; y: number }[],
+  playerScore: 0,
+  remainingMs: 5 * 60 * 1000,
+  postGameReport: null,
+  secretObjective: '',
+  allyIds: [] as string[],
 };
 
 export const useGameStore = create<GameState>((set) => ({
@@ -42,6 +59,7 @@ export const useGameStore = create<GameState>((set) => ({
     })),
 
   setProximityAlert: (active) => set({ proximityAlertActive: active }),
+  setProximityIntensity: (value) => set({ proximityIntensity: value }),
 
   updatePlayerStatus: (id, status) =>
     set((state) => ({
@@ -49,10 +67,40 @@ export const useGameStore = create<GameState>((set) => ({
     })),
 
   setAgent: (name) => set({ selectedAgent: name }),
-
   setCodename: (name) => set({ agentCodename: name }),
-
   setGameResult: (result) => set({ gameResult: result }),
 
-  resetGame: () => set({ ...INITIAL_STATE, screen: 'landing' }),
+  resetGame: () => set({
+    ...INITIAL_STATE,
+    screen: 'landing',
+  }),
+
+  // ── Multiplayer Actions ────────────────────────────────────────────────
+  setRoomCode: (code) => set({ roomCode: code }),
+  setPlayerId: (id) => set({ playerId: id }),
+  setIsHost: (isHost) => set({ isHost }),
+  setIsConnected: (connected) => set({ isConnected: connected }),
+  setRole: (role) => set({ role, viewAs: role }),
+  setLockedCharacters: (locked) => set({ lockedCharacters: locked }),
+  setAvailableCharacters: (chars) => set({ availableCharacters: chars }),
+  setOrbs: (orbs) => set({ orbs }),
+  setPlayerScore: (score) => set({ playerScore: score }),
+  setRemainingMs: (ms) => set({ remainingMs: ms }),
+  setPostGameReport: (report) => set({ postGameReport: report }),
+  setSecretObjective: (objective) => set({ secretObjective: objective }),
+  setAllyIds: (ids) => set({ allyIds: ids }),
+
+  setPlayers: (players) => set({ players }),
+  addPlayer: (player) =>
+    set((state) => ({
+      players: [...state.players.filter(p => p.id !== player.id), player],
+    })),
+  removePlayer: (playerId) =>
+    set((state) => ({
+      players: state.players.filter(p => p.id !== playerId),
+    })),
+  updatePlayerPosition: (playerId, x, y) =>
+    set((state) => ({
+      players: state.players.map(p => p.id === playerId ? { ...p, x, y } : p),
+    })),
 }));

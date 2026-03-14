@@ -1,22 +1,49 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
 import { GlitchText } from '../ui/GlitchText';
-
-const SECURITY_OBJECTIVE = "Monitor radar signatures and coordinate agent movements. Identify and accuse the Demogorgon before it catches all agents.";
-const DEMOGORGON_OBJECTIVE = "Hunt. Feed. Consume. Eliminate all agents before they identify you. You are the apex predator of the Upside Down.";
+import { useSocket } from '../../hooks/useSocket';
 
 const AUTO_ADVANCE_MS = 5000;
 
-export function RoleRevealScreen() {
-  const { viewAs, setScreen, agentCodename, selectedAgent } = useGameStore();
-  const isDemo = viewAs === 'demogorgon';
+// iOS 13+ requires explicit user gesture to enable DeviceMotion
+const needsMotionPermission = typeof (DeviceMotionEvent as any)?.requestPermission === 'function';
 
-  // Auto-advance after delay
+export function RoleRevealScreen() {
+  const { role, viewAs, setScreen, agentCodename, selectedAgent, secretObjective, isHost } = useGameStore();
+  const { emitStartGame } = useSocket();
+
+  // iOS DeviceMotion permission state
+  const [motionGranted, setMotionGranted] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+
+  const handleMotionPermission = async () => {
+    try {
+      const result = await (DeviceMotionEvent as any).requestPermission();
+      setMotionGranted(result === 'granted' ? 'granted' : 'denied');
+    } catch {
+      setMotionGranted('denied');
+    }
+  };
+
+  // Use server-assigned role if available, fallback to viewAs
+  const actualRole = role ?? viewAs;
+  const isDemo = actualRole === 'demogorgon';
+
+  const SECURITY_OBJECTIVE = secretObjective || "Monitor radar signatures and coordinate agent movements. Identify and accuse the Demogorgon before it catches all agents.";
+  const DEMOGORGON_OBJECTIVE = secretObjective || "Hunt. Feed. Consume. Eliminate all agents before they identify you. You are the apex predator of the Upside Down.";
+
+  // Auto-advance: host starts game, non-host waits
   useEffect(() => {
-    const timer = setTimeout(() => setScreen('lobby'), AUTO_ADVANCE_MS);
+    const timer = setTimeout(() => {
+      if (isHost) {
+        emitStartGame();
+      }
+      // setScreen('game') will be triggered by the 'gameStarted' socket event
+      // Fallback for offline mode:
+      setScreen('lobby');
+    }, AUTO_ADVANCE_MS);
     return () => clearTimeout(timer);
-  }, [setScreen]);
+  }, [setScreen, isHost, emitStartGame]);
 
   return (
     <motion.div
@@ -62,6 +89,21 @@ export function RoleRevealScreen() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8 max-w-xl">
+
+        {/* Role badge */}
+        <motion.div
+          className="font-mono text-[10px] tracking-[0.5em] px-4 py-1 border rounded-full"
+          style={{
+            borderColor: isDemo ? '#ef4444' : '#06b6d4',
+            color: isDemo ? '#ef4444' : '#06b6d4',
+            backgroundColor: isDemo ? 'rgba(239,68,68,0.1)' : 'rgba(6,182,212,0.1)',
+          }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          {isDemo ? '🔴 CLASSIFIED' : '🔵 CLEARANCE GRANTED'}
+        </motion.div>
 
         {/* Agent welcome */}
         <motion.div
@@ -130,10 +172,40 @@ export function RoleRevealScreen() {
           </p>
         </motion.div>
 
+        {/* iOS DeviceMotion permission request (Fix 5) */}
+        {needsMotionPermission && motionGranted === 'prompt' && (
+          <motion.button
+            onClick={handleMotionPermission}
+            className="w-full py-3 font-mono text-xs tracking-widest uppercase rounded border-2 transition-all"
+            style={{
+              borderColor: isDemo ? 'rgba(192,57,43,0.6)' : 'rgba(6,182,212,0.6)',
+              color: isDemo ? '#ef4444' : '#06b6d4',
+              backgroundColor: isDemo ? 'rgba(127,29,29,0.2)' : 'rgba(6,182,212,0.1)',
+            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            📱 Grant Motion Access (Required on iOS)
+          </motion.button>
+        )}
+
+        {needsMotionPermission && motionGranted !== 'prompt' && (
+          <motion.div
+            className="font-mono text-[10px] tracking-widest w-full text-center"
+            style={{ color: motionGranted === 'granted' ? '#10b981' : '#ef4444' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {motionGranted === 'granted' ? '✓ MOTION ACCESS GRANTED' : '✕ MOTION ACCESS DENIED — Movement may be limited'}
+          </motion.div>
+        )}
+
         {/* Auto-advance countdown bar */}
         <div className="w-full">
           <div className="font-mono text-[10px] text-white/30 tracking-widest mb-1 text-right">
-            AUTO-ADVANCING TO LOBBY...
+            {isHost ? 'AUTO-STARTING GAME...' : 'WAITING FOR HOST TO START...'}
           </div>
           <div className="h-px w-full bg-white/10 rounded overflow-hidden">
             <motion.div
@@ -148,13 +220,16 @@ export function RoleRevealScreen() {
 
         {/* Skip button */}
         <motion.button
-          onClick={() => setScreen('lobby')}
+          onClick={() => {
+            if (isHost) emitStartGame();
+            setScreen('lobby');
+          }}
           className="font-mono text-xs tracking-widest text-white/30 hover:text-white/60 transition-colors"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
         >
-          Skip → Enter Lobby
+          {isHost ? 'Skip → Start Game' : 'Skip → Enter Lobby'}
         </motion.button>
       </div>
     </motion.div>

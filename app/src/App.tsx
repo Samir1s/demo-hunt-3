@@ -13,11 +13,15 @@ import { ViewToggle } from './components/controls/ViewToggle';
 import { DemoPanel } from './components/controls/DemoPanel';
 import { useGameStore } from './store/gameStore';
 import { useGameSimulation } from './hooks/useGameSimulation';
+import { useSocket } from './hooks/useSocket';
 
 function App() {
   const currentScreen = useGameStore(state => state.screen);
 
   useGameSimulation();
+
+  // Initialize socket connection — auto-connects when roomCode + playerId are set
+  useSocket();
 
   return (
     <div className="w-screen h-screen bg-void text-white overflow-hidden relative selection:bg-accent-cyan/30">
