@@ -2,7 +2,7 @@
   <img src="docs/banner.png" alt="Demogorgon Hunt Banner" width="100%" />
 </p>
 
-<h1 align="center">🦷 DEMOGORGON HUNT</h1>
+<h1 align="center"> DEMOGORGON HUNT</h1>
 
 <p align="center">
   <b>A real-time multiplayer social deduction game set in the Stranger Things universe</b><br/>
